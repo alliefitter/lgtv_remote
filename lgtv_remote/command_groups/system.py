@@ -1,7 +1,11 @@
 from argparse import Namespace
 from typing import Tuple, Dict, Optional
 
-from lgtv_remote.command import ControlCommandBase, CommandGroupBase
+from getmac import get_mac_address
+from wakeonlan import send_magic_packet
+
+from lgtv_remote.command import ControlCommandBase, CommandGroupBase, CommandBase
+from lgtv_remote.settings import SettingsInterface
 
 
 class SystemCommandGroup(CommandGroupBase):
@@ -16,10 +20,6 @@ class SystemCommandGroup(CommandGroupBase):
     @property
     def name(self) -> str:
         return 'system'
-
-    @property
-    def usage(self) -> Optional[str]:
-        return 'lgtv-remote system COMMAND'
 
 
 class NotifyCommand(ControlCommandBase):
@@ -52,13 +52,32 @@ class NotifyCommand(ControlCommandBase):
         return 'notify'
 
 
-class PowerOnCommand(ControlCommandBase):
+class PowerOnCommand(CommandBase):
+    def __init__(self, settings: SettingsInterface):
+        self.settings = settings
+
+    @property
+    def options(self) -> Tuple[Dict, ...]:
+        return (
+            {
+                'args': ('-n', '--name'),
+                'kwargs': {
+                    'help': 'The name of an authenticated TV.',
+                    'metavar': 'NAME',
+                    'dest': 'name'
+                }
+            },
+        )
+
     def execute(self, namespace: Namespace):
+        settings = self.settings
         name = namespace.name
         path = namespace.config_path
 
-        control = self.create_control(path, name)
-        control.power_on()
+        settings.load(path)
+        tv_settings = settings.get(name)
+
+        send_magic_packet(get_mac_address(ip=tv_settings.host))
 
     @property
     def help(self) -> str:

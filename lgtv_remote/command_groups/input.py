@@ -2,22 +2,25 @@ from argparse import Namespace
 from typing import Type, Tuple, Optional
 
 from pywebostv.controls import WebOSControlBase
-from pynput.mouse import Controller
+try:
+    from pynput.mouse import Controller
+except KeyboardInterrupt:
+    print('Exiting...')
 
 from lgtv_remote.agent import MouseAgent, BlockingWindow, KeyboardAgent
 from lgtv_remote.command import CommandGroupBase, ControlCommandBase, CommandMetaInterface
-from lgtv_remote.factory import WebOSClientFactory
+from lgtv_remote.adapter import WebOSClientAdapter
 
 
-class MouseCommandGroup(CommandGroupBase):
+class InputCommandGroup(CommandGroupBase):
     def __init__(
             self,
             subcommands: Tuple[CommandMetaInterface, ...],
-            factory: WebOSClientFactory,
+            adapter: WebOSClientAdapter,
             control_type: Type[WebOSControlBase]
     ):
         super().__init__(subcommands)
-        self.factory = factory
+        self.adapter = adapter
         self.control_type = control_type
 
     @property
@@ -30,7 +33,7 @@ class MouseCommandGroup(CommandGroupBase):
 
     @property
     def name(self) -> str:
-        return 'mouse'
+        return 'input'
 
     @property
     def subcommands(self) -> Tuple[CommandMetaInterface, ...]:
@@ -68,18 +71,14 @@ class MouseCommandGroup(CommandGroupBase):
             'channel_down'
         ]
         return self._subcommands + tuple(
-            PressButtonCommand(button, self.factory, self.control_type) for button in buttons
+            PressButtonCommand(button, self.adapter, self.control_type) for button in buttons
         )
-
-    @property
-    def usage(self) -> Optional[str]:
-        return 'lgtv-remote mouse COMMAND'
 
 
 class PressButtonCommand(ControlCommandBase):
-    def __init__(self, button: str, factory: WebOSClientFactory, control_type: Type[WebOSControlBase]):
+    def __init__(self, button: str, adapter: WebOSClientAdapter, control_type: Type[WebOSControlBase]):
         self.button = button
-        super().__init__(factory, control_type)
+        super().__init__(adapter, control_type)
 
     def execute(self, namespace: Namespace):
         button = self.button

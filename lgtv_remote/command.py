@@ -4,7 +4,7 @@ from typing import Optional, Dict, Tuple, List, Type
 
 from pywebostv.controls import WebOSControlBase
 
-from lgtv_remote.factory import WebOSClientFactory
+from lgtv_remote.adapter import WebOSClientAdapter
 
 
 class CommandMetaInterface(ABC):
@@ -16,11 +16,6 @@ class CommandMetaInterface(ABC):
     @property
     @abstractmethod
     def name(self) -> str:
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def usage(self) -> Optional[str]:
         raise NotImplementedError
 
 
@@ -61,10 +56,6 @@ class CommandBase(CommandInterface, ABC):
     def defaults(self) -> Dict:
         return {}
 
-    @property
-    def usage(self) -> Optional[str]:
-        return None
-
 
 class CommandGroupBase(CommandGroupInterface, ABC):
     def __init__(self, subcommands: Tuple[CommandMetaInterface, ...]):
@@ -73,10 +64,6 @@ class CommandGroupBase(CommandGroupInterface, ABC):
     @property
     def subcommands(self) -> Tuple[CommandMetaInterface, ...]:
         return self._subcommands
-
-    @property
-    def usage(self) -> Optional[str]:
-        return None
 
     def get_parents(self, base_parser: ArgumentParser) -> List[ArgumentParser]:
         return [base_parser]
@@ -95,14 +82,10 @@ class RootCommandGroup(CommandGroupBase):
     def name(self) -> str:
         return 'lgtv-remote'
 
-    @property
-    def usage(self) -> Optional[str]:
-        return 'lgtv-remote CONTROL ...'
-
 
 class ControlCommandBase(CommandBase, ABC):
-    def __init__(self, factory: WebOSClientFactory, control_type: Type[WebOSControlBase]):
-        self.factory = factory
+    def __init__(self, adapter: WebOSClientAdapter, control_type: Type[WebOSControlBase]):
+        self.adapter = adapter
         self.control_type = control_type
 
     @property
@@ -119,72 +102,7 @@ class ControlCommandBase(CommandBase, ABC):
         )
 
     def create_control(self, path: str, friendly_name: str) -> WebOSControlBase:
-        factory = self.factory
+        adapter = self.adapter
         control_type = self.control_type
 
-        return control_type(factory.create(path, friendly_name))
-
-
-class AuthenticateCommand(CommandBase):
-    def __init__(self, factory: WebOSClientFactory):
-        self.factory = factory
-
-    @property
-    def options(self) -> Tuple[Dict, ...]:
-        return (
-            {
-                'args': ('name',),
-                'kwargs': {
-                    'help': 'A name of the TV with which you are attempting to authenticate, such as "living_room" or '
-                            '"bedroom".',
-                    'metavar': 'NAME'
-                }
-            },
-            {
-                'args': ('ip_address',),
-                'kwargs': {
-                    'help': 'The IP address of the TV with which you are attempting to authenticate.',
-                    'metavar': 'IP_ADDRESS'
-                }
-            }
-        )
-
-    def execute(self, namespace: Namespace):
-        factory = self.factory
-        name = namespace.name
-        ip_address = namespace.ip_address
-        path = namespace.config_path
-
-        factory.authenticate(name, ip_address, path)
-
-    @property
-    def help(self) -> str:
-        return 'Authenticate with an LG smart TV.'
-
-    @property
-    def name(self) -> str:
-        return 'authenticate'
-
-
-class DiscoverCommand(CommandBase):
-    def __init__(self, factory: WebOSClientFactory):
-        self.factory = factory
-
-    @property
-    def options(self) -> Tuple[Dict, ...]:
-        return tuple()
-
-    def execute(self, namespace: Namespace):
-        factory = self.factory
-
-        factory.discover()
-
-    @property
-    def help(self) -> str:
-        return 'Discover LG smart TVs connected to your network.'
-
-    @property
-    def name(self) -> str:
-        return 'discover'
-
-
+        return control_type(adapter.create(path, friendly_name))

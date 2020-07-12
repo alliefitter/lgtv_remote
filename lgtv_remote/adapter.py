@@ -4,7 +4,7 @@ from lgtv_remote.exeception import ClientError
 from lgtv_remote.settings import SettingsInterface
 
 
-class WebOSClientFactory:
+class WebOSClientAdapter:
     def __init__(self, settings: SettingsInterface):
         self.settings = settings
 

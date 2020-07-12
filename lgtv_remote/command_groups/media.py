@@ -17,10 +17,6 @@ class MediaCommandGroup(CommandGroupBase):
     def name(self) -> str:
         return 'media'
 
-    @property
-    def usage(self) -> Optional[str]:
-        return 'lgtv-remote media COMMAND'
-
 
 class VolumeUpCommand(ControlCommandBase):
     def execute(self, namespace: Namespace):

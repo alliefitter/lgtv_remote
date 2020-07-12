@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Tuple, Dict, List
 
 from lgtv_remote.command import CommandGroupInterface, CommandInterface, CommandMetaInterface
+from lgtv_remote.exeception import ClientError
 
 
 class Client:
@@ -22,16 +23,18 @@ class Client:
         self.command_group = command_group
         self.parser: ArgumentParser = ArgumentParser(
             description=command_group.help,
-            prog=command_group.name,
-            usage=command_group.usage
+            prog=command_group.name
         )
         self.base_parser = ArgumentParser(add_help=False)
 
     def run(self, *args):
         try:
             self._run(*args)
-        except KeyboardInterrupt:
-            exit(0)
+        except (KeyboardInterrupt, ClientError) as e:
+            if isinstance(e, ClientError):
+                print('Error: ', e)
+            else:
+                print('Exiting...')
 
     def _run(self, *args):
         self._set_global_options()
@@ -42,8 +45,13 @@ class Client:
         )
         self._set_commands(command_group.subcommands, subparsers, command_group.get_parents(self.base_parser))
         namespace = self.parser.parse_args(*args)
-        command: CommandInterface = namespace.command
-        command.execute(namespace)
+        if hasattr(namespace, 'command'):
+            command: CommandInterface = namespace.command
+            command.execute(namespace)
+        elif hasattr(namespace, 'group_help'):
+            namespace.group_help()
+        else:
+            self.parser.print_help()
 
     def _set_commands(
             self,
@@ -54,14 +62,13 @@ class Client:
         for command in commands:
             command_parser = subparsers.add_parser(
                 command.name,
-                add_help=isinstance(command, CommandInterface),
                 help=command.help,
-                parents=parents if isinstance(command, CommandInterface) else [],
-                usage=command.usage
+                parents=parents if isinstance(command, CommandInterface) else []
             )
             if isinstance(command, CommandInterface):
                 self._set_command(command, command_parser)
             elif isinstance(command, CommandGroupInterface):
+                command_parser.set_defaults(group_help=command_parser.print_help)
                 self._set_command_group(command, command_parser)
 
     def _set_command(self, command: CommandInterface, command_parser: ArgumentParser):

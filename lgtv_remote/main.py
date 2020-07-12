@@ -3,70 +3,80 @@ from sys import argv
 from pywebostv.controls import MediaControl, SystemControl, InputControl
 
 from lgtv_remote.client import Client
-from lgtv_remote.command import RootCommandGroup, AuthenticateCommand, DiscoverCommand
-from lgtv_remote.factory import WebOSClientFactory
-from lgtv_remote.media import MediaCommandGroup, VolumeUpCommand, VolumeDownCommand, GetVolumeCommand, SetVolumeCommand, \
+from lgtv_remote.command import RootCommandGroup
+from lgtv_remote.command_groups.connect import ConnectCommandGroup, AuthenticateCommand, DiscoverCommand, \
+    SendCommand
+from lgtv_remote.adapter import WebOSClientAdapter
+from lgtv_remote.command_groups.media import MediaCommandGroup, VolumeUpCommand, VolumeDownCommand, GetVolumeCommand, SetVolumeCommand, \
     MuteCommand, UnmuteCommand, PlayCommand, PauseCommand, StopCommand, RewindCommand, FastForwardCommand
-from lgtv_remote.mouse import MouseCommandGroup, CaptureMouseCommand, CaptureKeyboardCommand
+from lgtv_remote.command_groups.input import InputCommandGroup, CaptureMouseCommand, CaptureKeyboardCommand
 from lgtv_remote.settings import Settings
-from lgtv_remote.system import SystemCommandGroup, NotifyCommand, PowerOnCommand, PowerOffCommand, InfoCommand
+from lgtv_remote.command_groups.system import SystemCommandGroup, NotifyCommand, PowerOnCommand, PowerOffCommand, InfoCommand
 
 
 def main():
-    factory = WebOSClientFactory(Settings())
+    settings = Settings()
+    adapter = WebOSClientAdapter(settings)
     Client(
         RootCommandGroup(
             (
-                AuthenticateCommand(
-                    factory
-                ),
-                DiscoverCommand(
-                    factory
+                ConnectCommandGroup(
+                    (
+                        AuthenticateCommand(
+                            adapter
+                        ),
+                        DiscoverCommand(
+                            adapter
+                        ),
+                        SendCommand(
+                            adapter
+                        )
+                    )
                 ),
                 MediaCommandGroup(
                     (
                         VolumeUpCommand(
-                            factory,
+                            adapter,
                             MediaControl
                         ),
                         VolumeDownCommand(
-                            factory,
+                            adapter,
                             MediaControl
                         ),
                         GetVolumeCommand(
-                            factory,
+                            adapter,
                             MediaControl
                         ),
                         SetVolumeCommand(
-                            factory,
+                            adapter,
                             MediaControl
                         ),
                         MuteCommand(
-                            factory,
+                            adapter,
                             MediaControl
                         ),
                         UnmuteCommand(
-                            factory,
+                            adapter,
                             MediaControl
                         ),
                         PlayCommand(
-                            factory,
+                            adapter,
                             MediaControl
                         ),
                         PauseCommand(
-                            factory,
+                            adapter,
                             MediaControl
                         ),
                         StopCommand(
-                            factory,
+                            adapter,
                             MediaControl
                         ),
                         RewindCommand(
-                            factory,
+                            adapter,
                             MediaControl
                         ),
                         FastForwardCommand(
-                            factory,
+                            adapter,
                             MediaControl
                         )
                     )
@@ -74,35 +84,34 @@ def main():
                 SystemCommandGroup(
                     (
                         NotifyCommand(
-                            factory,
+                            adapter,
                             SystemControl
                         ),
                         PowerOnCommand(
-                            factory,
-                            SystemControl
+                            settings
                         ),
                         PowerOffCommand(
-                            factory,
+                            adapter,
                             SystemControl
                         ),
                         InfoCommand(
-                            factory,
+                            adapter,
                             SystemControl
                         )
                     )
                 ),
-                MouseCommandGroup(
+                InputCommandGroup(
                     (
                         CaptureMouseCommand(
-                            factory,
+                            adapter,
                             InputControl
                         ),
                         CaptureKeyboardCommand(
-                            factory,
+                            adapter,
                             InputControl
                         )
                     ),
-                    factory,
+                    adapter,
                     InputControl
                 )
             )
