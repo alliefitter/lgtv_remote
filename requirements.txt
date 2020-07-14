@@ -1,3 +1,5 @@
 PyYAML
 pywebostv
 pynput
+getmac
+wakeonlan
